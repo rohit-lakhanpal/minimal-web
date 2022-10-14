@@ -1,10 +1,10 @@
+/// This is a minimal .NET 6.0 web application configured for 3 things:
+/// 1. Exposes health checks via the /healthz (via Microsoft.Extensions.Diagnostics.HealthChecks)
+/// 2. All other requests echo the http connection, headers and query properties.
+/// 3. All headers that start with X-AZURE or X-FORWARDED are logged to App Insights.
 using Microsoft.ApplicationInsights.DataContracts;
 
 #region PrintHelpers
-/// This is a minimal .NET 6.0 web application configured for 3 things:
-/// 1. Redirects to HTTPS
-/// 2. Exposes health checks via the /healthz (via Microsoft.Extensions.Diagnostics.HealthChecks)
-/// 3. All other requests echo the http connection, headers and query properties.
 var print = (string key, object value)
     => $"{key?.ToUpper()}: {value.ToString()} {Environment.NewLine}";
 
@@ -22,15 +22,8 @@ var addHttpHeadersToAppInsights =
         .ForEach(h => telemetry.Properties.Add(h.Key.Replace("-", string.Empty), h.Value));
 #endregion TelemetryHelper
 
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddHealthChecks();
-builder.Services.AddApplicationInsightsTelemetry();
-var app = builder.Build();
-app.UseHttpsRedirection();
-app.MapHealthChecks("/healthz");
-
-// map catch-all handler
-app.MapFallback((HttpContext c) =>
+#region CatchAllRequestHandler
+var catchAllRequestHandler = (HttpContext c) =>
 {
     // capture headers for App Insights
     addHttpHeadersToAppInsights(c.Features.Get<RequestTelemetry>(), c.Request.Headers);
@@ -41,7 +34,14 @@ app.MapFallback((HttpContext c) =>
     output += printHeaders("request header", c.Request.Headers);
     output += print("query string", c.Request.QueryString);
     return output;
-});
+};
+#endregion CatchAllRequestHandler
 
-
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHealthChecks();
+builder.Services.AddApplicationInsightsTelemetry();
+var app = builder.Build();
+app.UseHttpsRedirection();
+app.MapHealthChecks("/healthz");
+app.MapFallback(catchAllRequestHandler);
 app.Run();
