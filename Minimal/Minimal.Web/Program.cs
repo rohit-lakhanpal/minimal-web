@@ -5,37 +5,41 @@
 using Microsoft.ApplicationInsights.DataContracts;
 
 #region PrintHelpers
-var print = (string key, object value)
-    => $"{key?.ToUpper()}: {value.ToString()} {Environment.NewLine}";
+    var print = (string key, object value)
+        => $"{key?.ToUpper()}: {value.ToString()} {Environment.NewLine}";
 
-var printHeaders = (string key, IHeaderDictionary headers)
-    => string.Join(string.Empty, headers.OrderBy(h => h.Key).SelectMany(h => print($"{key}[{h.Key}]", h.Value)));
+    var printHeaders = (string key, IHeaderDictionary headers)
+        => string.Join(string.Empty, headers.OrderBy(h => h.Key).SelectMany(h => print($"{key}[{h.Key}]", h.Value)));
 #endregion PrintHelpers
 
 #region TelemetryHelper
-// Log http request headers that start with X-AZURE or X-FORWARDED
-var addHttpHeadersToAppInsights = 
-    (RequestTelemetry telemetry, IHeaderDictionary headers) => headers
-        .Where(h => h.Key.StartsWith("X-AZURE", StringComparison.InvariantCultureIgnoreCase) ||
-                    h.Key.StartsWith("X-FORWARDED", StringComparison.InvariantCultureIgnoreCase))
-        .ToList()
-        .ForEach(h => telemetry.Properties.Add(h.Key.Replace("-", string.Empty), h.Value));
+    // Log http request headers that start with X-AZURE or X-FORWARDED
+    var addHttpHeadersToAppInsights = 
+        (RequestTelemetry telemetry, IHeaderDictionary headers) => headers
+            .Where(h => h.Key.StartsWith("X-AZURE", StringComparison.InvariantCultureIgnoreCase) ||
+                        h.Key.StartsWith("X-FORWARDED", StringComparison.InvariantCultureIgnoreCase))
+            .ToList()
+            .ForEach(h => telemetry.Properties.Add(h.Key.Replace("-", string.Empty), h.Value));
 #endregion TelemetryHelper
 
 #region CatchAllRequestHandler
-var catchAllRequestHandler = (HttpContext c) =>
-{
-    // capture headers for App Insights
-    addHttpHeadersToAppInsights(c.Features.Get<RequestTelemetry>(), c.Request.Headers);
-
-    // return catch-all result
-    var output = print("host", c.Request.Host);
-    output += print("path", c.Request.Path);
-    output += printHeaders("request header", c.Request.Headers);
-    output += print("query string", c.Request.QueryString);
-    return output;
-};
+    var catchAllRequestHandler = (HttpContext c) =>
+    {
+        var output = print("host", c.Request.Host);
+        output += print("path", c.Request.Path);
+        output += printHeaders("request header", c.Request.Headers);
+        output += print("query string", c.Request.QueryString);
+        return output;
+    };
 #endregion CatchAllRequestHandler
+
+#region CustomAppInsightsMiddlewareHandler
+    var customAppInsightsMiddlewareHandler = async (HttpContext c, Func<Task> next) =>
+    {
+        await next.Invoke();
+        addHttpHeadersToAppInsights(c.Features.Get<RequestTelemetry>(), c.Request.Headers);
+    };
+#endregion AppInsightsMiddlewareHandler
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks();
@@ -44,4 +48,5 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 app.MapHealthChecks("/healthz");
 app.MapFallback(catchAllRequestHandler);
+app.Use(customAppInsightsMiddlewareHandler);
 app.Run();
