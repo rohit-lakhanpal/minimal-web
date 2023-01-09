@@ -1,5 +1,5 @@
 # A Minimal Web Application
-This is a minimal .NET 6.0 web application that:
+This is a minimal .NET 7.0 web application that:
 - Exposes health checks via the /healthz (via Microsoft.Extensions.Diagnostics.HealthChecks)
 - All other requests echo the http connection, headers and query properties.
 - All headers that start with X-AZURE or X-FORWARDED are logged to App Insights.

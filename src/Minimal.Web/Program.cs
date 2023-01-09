@@ -4,6 +4,8 @@
 /// 3. All headers that start with X-AZURE or X-FORWARDED are logged to App Insights.
 using Microsoft.ApplicationInsights.DataContracts;
 
+/// BEGIN HELPERS & HANDLERS
+
 #region PrintHelpers
     var print = (string key, object value)
         => $"{key?.ToUpper()}: {value.ToString()} {Environment.NewLine}";
@@ -42,6 +44,8 @@ using Microsoft.ApplicationInsights.DataContracts;
             addHttpHeadersToAppInsights(requestTelemetry, c.Request.Headers);
     };
 #endregion AppInsightsMiddlewareHandler
+
+/// END HELPERS & HANDLERS
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks();
