@@ -41,4 +41,4 @@ All the magic happens in [Program.cs](src/Minimal.Web/Program.cs)!
 
 All headers that start with X-AZURE or X-FORWARDED are logged to App Insights. This logic is injected into the middleware pipeline via `catchAllRequestHandler` in [Program.cs](src/Minimal.Web/Program.cs). Like so:
 
-![Catch-all Response Image](https://raw.githubusercontent.com/rohit-lakhanpal/minimal-web/main/headers.png)
+![Catch-all Response Image](docs/headers.png)
