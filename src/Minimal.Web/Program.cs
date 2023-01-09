@@ -37,7 +37,9 @@ using Microsoft.ApplicationInsights.DataContracts;
     var customAppInsightsMiddlewareHandler = async (HttpContext c, Func<Task> next) =>
     {
         await next.Invoke();
-        addHttpHeadersToAppInsights(c.Features.Get<RequestTelemetry>(), c.Request.Headers);
+        var requestTelemetry = c.Features.Get<RequestTelemetry>();
+        if(requestTelemetry != null)
+            addHttpHeadersToAppInsights(requestTelemetry, c.Request.Headers);
     };
 #endregion AppInsightsMiddlewareHandler
 
